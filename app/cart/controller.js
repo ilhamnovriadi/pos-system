@@ -1,11 +1,11 @@
-const Cart = require("../cart-item/model");
-const Product = require("../product/model");
+const { resetCart, deployCart, indexCart } = require("../cart-item/services");
+const { findProductbyIds } = require("../product/services");
 
 const update = async (req, res, next) => {
   try {
     const { items } = req.body;
     const productIds = items.map((item) => item.product);
-    const products = await Product.find({ _id: { $in: productIds } }).lean();
+    const products = await findProductbyIds(productIds);
     let cartItems = items.map((item) => {
       let relateProduct = products.find(
         (product) => product._id.toString() === item.product
@@ -20,22 +20,8 @@ const update = async (req, res, next) => {
       };
     });
 
-    await Cart.deleteMany({ user: req.user._id });
-    await Cart.bulkWrite(
-      cartItems.map((item) => {
-        console.log(item.qty)
-        return {
-          updateOne: {
-            filter: {
-              user: req.user._id,
-              product: item.product,
-            },
-            update: item,
-            upsert: true,
-          },
-        };
-      })
-    );
+    await resetCart(req.user._id);
+    await deployCart(cartItems, req.user._id);
 
     let cartsResponse = items.map((item) => {
       let relateProduct = products.find(
@@ -61,7 +47,7 @@ const update = async (req, res, next) => {
 
 const index = async (req, res, next) => {
   try {
-    let items = await Cart.find({ user: req.user._id }).populate("product");
+    let items = await indexCart(req.user._id);
     return res.json(items);
   } catch (err) {
     if (err && err.name === "ValidationError") {

@@ -2,18 +2,31 @@ const path = require("path");
 const fs = require("fs");
 const config = require("../config");
 const Product = require("./model");
-const Category = require("../category/model");
-const Tags = require("../tag/model");
+const { viewCategory } = require("../category/services");
+const { viewTags } = require("../tag/services");
+
+const handleTempFile = (file) => {
+  let tmp_path = file.path;
+  let originalExt =
+    file.originalname.split(".")[file.originalname.split(".").length - 1];
+  let filename = file.filename + "." + originalExt;
+  let target_path = path.resolve(
+    config.rootPath,
+    `public/images/products/${filename}`
+  );
+
+  const src = fs.createReadStream(tmp_path);
+  const dest = fs.createWriteStream(target_path);
+
+  return { src, dest };
+};
 
 const store = async (req, res, next) => {
   try {
     let payload = req.body;
 
     if (payload.category) {
-      let category = await Category.findOne({
-        name: { $regex: payload.category, $options: "i" },
-      });
-
+      let category = await viewCategory(payload.category);
       if (category) {
         payload = { ...payload, category: category._id };
       } else {
@@ -27,10 +40,7 @@ const store = async (req, res, next) => {
 
       for (let i = 0; i < tags.length; i++) {
         const element = tags[i];
-
-        const listTags = await Tags.findOne({
-          name: { $regex: element, $options: "i" },
-        });
+        const listTags = await viewTags(element);
         if (listTags) concul.push(listTags);
       }
 
@@ -42,19 +52,7 @@ const store = async (req, res, next) => {
     }
 
     if (req.file) {
-      let tmp_path = req.file.path;
-      let originalExt =
-        req.file.originalname.split(".")[
-          req.file.originalname.split(".").length - 1
-        ];
-      let filename = req.file.filename + "." + originalExt;
-      let target_path = path.resolve(
-        config.rootPath,
-        `public/images/products/${filename}`
-      );
-
-      const src = fs.createReadStream(tmp_path);
-      const dest = fs.createWriteStream(target_path);
+      let { src, dest } = handleTempFile(req.file);
       src.pipe(dest);
 
       src.on("end", async () => {
@@ -105,9 +103,7 @@ const index = async (req, res, next) => {
   }
 
   if (category.length) {
-    let categoriesResult = await Category.findOne({
-      name: { $regex: category, $options: "i" },
-    });
+    let categoriesResult = await viewCategory(category);
     if (categoriesResult) {
       criteria = { ...criteria, category: categoriesResult._id };
     }
@@ -120,9 +116,7 @@ const index = async (req, res, next) => {
     for (let i = 0; i < tagsResult.length; i++) {
       const element = tagsResult[i];
 
-      const listTags = await Tags.findOne({
-        name: { $regex: element, $options: "i" },
-      });
+      const listTags = await viewTags(element);
       if (listTags) concul.push(listTags);
     }
 
@@ -161,10 +155,7 @@ const update = async (req, res, next) => {
     let payload = req.body;
     const { id } = req.params;
     if (payload.category) {
-      let category = await Category.findOne({
-        name: { $regex: payload.category, $options: "i" },
-      });
-
+      let category = await viewCategory(payload.category);
       if (category) {
         payload = { ...payload, category: category._id };
       } else {
@@ -179,9 +170,7 @@ const update = async (req, res, next) => {
       for (let i = 0; i < tags.length; i++) {
         const element = tags[i];
 
-        const listTags = await Tags.findOne({
-          name: { $regex: element, $options: "i" },
-        });
+        const listTags = await viewTags(element);
         if (listTags) concul.push(listTags);
       }
 
@@ -194,19 +183,7 @@ const update = async (req, res, next) => {
     }
 
     if (req.file) {
-      let tmp_path = req.file.path;
-      let originalExt =
-        req.file.originalname.split(".")[
-          req.file.originalname.split(".").length - 1
-        ];
-      let filename = req.file.filename + "." + originalExt;
-      let target_path = path.resolve(
-        config.rootPath,
-        `public/images/products/${filename}`
-      );
-
-      const src = fs.createReadStream(tmp_path);
-      const dest = fs.createWriteStream(target_path);
+      let { src, dest } = handleTempFile(req.file);
       src.pipe(dest);
 
       src.on("end", async () => {

@@ -48,7 +48,7 @@ userSchema.path("email").validate(
       const count = await this.model("user").count({ email: value });
       return !count;
     } catch (err) {
-      throw err;
+      console.log(error);
     }
   },
   (attr) => `${attr.value} sudah terdaftar!`

@@ -1,15 +1,12 @@
 const Invoice = require("./model");
-const Order = require("../order/model");
-const { Types } = require("mongoose");
 const { policyFor } = require("../../utils");
 const { subject } = require("@casl/ability");
+const { viewOrder } = require("../order/services");
 
 const show = async (req, res, next) => {
   try {
     let { id } = req.params;
-    let order = await Order.findOne({ order_numbers: id })
-      .populate("order_items")
-      .populate("delivery_address");
+    let order = await viewOrder(id);
     let invoice = await Invoice.findOne({ order: order._id })
       .populate("order")
       .populate({ path: "user", select: "-password -token -role" })
