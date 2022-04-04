@@ -1,6 +1,4 @@
 const Invoice = require("./model");
-const { policyFor } = require("../../utils");
-const { subject } = require("@casl/ability");
 const { viewOrder } = require("../order/services");
 
 const show = async (req, res, next) => {
@@ -11,19 +9,6 @@ const show = async (req, res, next) => {
       .populate("order")
       .populate({ path: "user", select: "-password -token -role" })
       .lean();
-
-    let policy = policyFor(req.user);
-    let subjectPolicy = subject("invoice", {
-      ...invoice,
-      user: invoice.user._id,
-    });
-
-    if (!policy.can("read", subjectPolicy)) {
-      return res.json({
-        error: 1,
-        message: "Anda tidak memiliki akses untuk mengakses invoice ini",
-      });
-    }
 
     return res.json({
       ...invoice,
